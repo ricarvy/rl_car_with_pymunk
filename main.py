@@ -158,15 +158,15 @@ def create_an_expmple(map_random, config, log_counter):
                     # new_y = 600-(((sensor.position[1] - car.position[1]) * np.sin(np.pi / 4) - (
                     # sensor.position[0] - car.position[0]) * np.cos(np.pi / 4)) + sensor.position[1])
 
-                    new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (
-                    sensor.position[1] - car.position[1]) * np.sin(np.pi / 4)) + car.position[0]
-                    new_y = 600-(((car.position[1] - sensor.position[1]) * np.sin(np.pi / 4) + (
-                    car.position[0] - sensor.position[0]) * np.cos(np.pi / 4)) + car.position[1])
+                    # new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (
+                    # sensor.position[1] - car.position[1]) * np.sin(np.pi / 4)) + car.position[0]
+                    # new_y = 600-(((car.position[1] - sensor.position[1]) * np.sin(np.pi / 4) + (
+                    # car.position[0] - sensor.position[0]) * np.cos(np.pi / 4)) + car.position[1])
 
-                    # new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (sensor.position[1] - car.position[1]) * np.sin(
-                    #     np.pi / 4)) + car.position[0]
-                    # new_y = ((sensor.position[0] - car.position[0]) * np.sin(np.pi / 4) + (sensor.position[1] - car.position[1]) * np.cos(
-                    #     np.pi / 4)) + car.position[1]
+                    new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (sensor.position[1] - car.position[1]) * np.sin(
+                        np.pi / 4)) + car.position[0]
+                    new_y = ((sensor.position[0] - car.position[0]) * np.sin(np.pi / 4) + (sensor.position[1] - car.position[1]) * np.cos(
+                        np.pi / 4)) + car.position[1]
                     sensor.position = new_x, new_y
                     print(sensor.position)
         car.position = car.position[0] + 2 * np.cos(car.angle), car.position[1] + 2 * np.sin(car.angle)
