@@ -11,11 +11,13 @@ import pymunk #1
 import numpy as np
 from pymunk.pygame_util import DrawOptions
 from pygame.colordict import THECOLORS
+from pymunk.vec2d import Vec2d
 
 from argparse import ArgumentParser
 
 import json
 from tools.json_loader import config_load
+from counter.log_counter import LogCounter
 
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 600
@@ -53,6 +55,7 @@ def create_car(space, car_configs):
         body = pymunk.Body(mass, moment)  # 2
         body.position = car_config['initialize_position'][0], car_config['initialize_position'][1]  # 3
         shape = pymunk.Circle(body, radius)  # 4
+        shape.color = THECOLORS[car_config['color']]
         space.add(body, shape)  # 5
     return body, shape
 
@@ -90,7 +93,37 @@ def create_cats(space, cat_configs):
         space.add(body, shape)  # 5
     return body, shape
 
-def create_an_expmple(map_random, config):
+def add_point(space,x,y):
+    mass = 1
+    radius = 1
+    moment = pymunk.moment_for_circle(mass, 0, radius) # 1
+    body = pymunk.Body(mass, moment) # 2
+    body.position = x, y
+    shape = pymunk.Circle(body, radius) # 4
+    shape.color = THECOLORS['black']
+    space.add(body, shape) # 5
+    return body, shape
+
+def create_sensors(space, car, carshape):
+    car_position = car.position
+    car_radius = carshape.radius
+    car_angle = car.angle
+
+    sensors = []
+    rotation = [np.pi/4, -np.pi/4]
+    add_rate = 0.5
+
+    for i in range(1):
+        x = car_position[0] + (1.3 + (i+1) * add_rate) * car_radius * np.cos(car_angle)
+        y = car_position[1] + (1.3 + (i+1) * add_rate) * car_radius * np.sin(car_angle)
+        print(x, y)
+        point, _ = add_point(space, x, y)
+        sensors.append(point)
+    return sensors
+
+def create_an_expmple(map_random, config, log_counter):
+    crashed = False
+
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
     pygame.display.set_caption("Joints. Just wait and the L will tip over")
@@ -103,52 +136,74 @@ def create_an_expmple(map_random, config):
     ### create the world map
     ### create the car
     car, carshape = create_car(space, config['cars'])
+    sensors = create_sensors(space,car,carshape)
 
     ### create walls
-    walls = create_walls(space, config['walls'])
+    # walls = create_walls(space, config['walls'])
     ### create stones
-    stones, stones_shape = create_stones(space, config['stones'])
+    # stones, stones_shape = create_stones(space, config['stones'])
     ### create cats
     cats, cats_shape = create_cats(space, config['cats'])
 
     tick_to_change_cat_ango = 0
     while True:
         for event in pygame.event.get():
-            # print(event.type)
             if event.type == QUIT:
                 sys.exit(0)
             elif event.type == MOVE:
                 car.angle += (np.pi / 4)
+                for sensor in sensors:
+                    # new_x = ((car.position[0] - sensor.position[0]) * np.cos(np.pi / 4) + (
+                    # car.position[1] - sensor.position[1]) * np.sin(np.pi / 4)) + sensor.position[0]
+                    # new_y = 600-(((sensor.position[1] - car.position[1]) * np.sin(np.pi / 4) - (
+                    # sensor.position[0] - car.position[0]) * np.cos(np.pi / 4)) + sensor.position[1])
+
+                    new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (
+                    sensor.position[1] - car.position[1]) * np.sin(np.pi / 4)) + car.position[0]
+                    new_y = 600-(((car.position[1] - sensor.position[1]) * np.sin(np.pi / 4) + (
+                    car.position[0] - sensor.position[0]) * np.cos(np.pi / 4)) + car.position[1])
+
+                    # new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (sensor.position[1] - car.position[1]) * np.sin(
+                    #     np.pi / 4)) + car.position[0]
+                    # new_y = ((sensor.position[0] - car.position[0]) * np.sin(np.pi / 4) + (sensor.position[1] - car.position[1]) * np.cos(
+                    #     np.pi / 4)) + car.position[1]
+                    sensor.position = new_x, new_y
+                    print(sensor.position)
         car.position = car.position[0] + 2 * np.cos(car.angle), car.position[1] + 2 * np.sin(car.angle)
-        if (car.position[0] <= BORDER or car.position[0] >= SCREEN_WIDTH-BORDER ) or (car.position[1] <= BORDER or car.position[1] >=SCREEN_HEIGHT-BORDER):
+        for sensor in sensors:
+            sensor.position = sensor.position[0]+ 2 * np.cos(car.angle), sensor.position[1]+2 * np.sin(car.angle)
+
+        driving_direction = Vec2d(1,0).rotate(car.angle)
+        if (car.position[0] < BORDER-5 or car.position[0] > SCREEN_WIDTH-BORDER+5 ) or (car.position[1] < BORDER-5 or car.position[1] >SCREEN_HEIGHT-BORDER+5):
             car.angle += np.pi/2
 
         ### cat moving
-        tick_to_change_cat_ango += 1
         cats.position = cats.position[0] + 2 * np.cos(cats.angle), \
                         cats.position[1] + 2 * np.sin(cats.angle)
-        if(tick_to_change_cat_ango == 50):
+        if(log_counter.step_count % 50 == 0):
             cats_changed_angle = np.random.randint(-1,2) * (np.pi / 4)
             cats.angle += cats_changed_angle
-            tick_to_change_cat_ango = 0
-        if (cats.position[0] <= BORDER or cats.position[0] >= SCREEN_WIDTH-BORDER ) or (cats.position[1] <= BORDER or cats.position[1] >=SCREEN_HEIGHT-BORDER):
+        if (cats.position[0] < BORDER or cats.position[0] > SCREEN_WIDTH-BORDER ) or (cats.position[1] < BORDER or cats.position[1] >SCREEN_HEIGHT-BORDER):
             cats.angle += np.pi/2
 
         space.step(1 / 50.0)
 
-        screen.fill((245, 245, 245))
+        screen.fill(THECOLORS['whitesmoke'])
         space.debug_draw(draw_options)
 
         pygame.display.flip()
         clock.tick(50)
+        log_counter.step_count += 1
 
 def main():
     config = config_load()
+    log_counter = LogCounter()
+
     parser = build_paser()
     options = parser.parse_args()
     map_random = options.map_random
     if options.mode == 'example':
-        create_an_expmple(map_random, config)
+        create_an_expmple(map_random, config, log_counter)
 
 
 
