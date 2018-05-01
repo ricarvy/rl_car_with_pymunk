@@ -19,11 +19,14 @@ import json
 from tools.json_loader import config_load
 from counter.log_counter import LogCounter
 
+from counter.experience_pool import Experience,Experience_Pool
+
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 600
 BORDER = 50
 QUIT = 12
 MOVE = 2
+RESET = 5
 
 def build_paser():
     parser = ArgumentParser()
@@ -74,7 +77,7 @@ def create_stones(space, stone_configs):
     for stone_config in stone_configs:
         mass = stone_config['mass']
         moment = pymunk.moment_for_box(mass, (stone_config['moment'][0], stone_config['moment'][1]))
-        body = pymunk.Body(mass,moment)
+        body = pymunk.Body(mass,moment,body_type=pymunk.Body.STATIC)
         body.position = stone_config['initialize_position'][0], stone_config['initialize_position'][1]
         shape = pymunk.Poly.create_box(body, (stone_config['size'][0],stone_config['size'][1]), stone_config['inner_radius'])
         shape.color = THECOLORS[stone_config['color']]
@@ -95,7 +98,7 @@ def create_cats(space, cat_configs):
 
 def add_point(space,x,y):
     mass = 1
-    radius = 1
+    radius = 2
     moment = pymunk.moment_for_circle(mass, 0, radius) # 1
     body = pymunk.Body(mass, moment) # 2
     body.position = x, y
@@ -104,25 +107,86 @@ def add_point(space,x,y):
     space.add(body, shape) # 5
     return body, shape
 
-def create_sensors(space, car, carshape):
+def create_arm(space, car, carshape, add_rate, rotation):
+    car_position = car.position
+    car_radius = carshape.radius
+    car_angle = car.angle
+    arm = []
+    for i in range(5):
+        x = ((car_position[0] + (1.3 + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
+        y = ((car_position[1] + (1.3 + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
+        new_x = x * np.cos(rotation) - y * np.sin(rotation) + car_position[0]
+        new_y = x * np.sin(rotation) + y * np.cos(rotation) + car_position[1]
+        print(new_x, new_y)
+        point, _ = add_point(space, new_x, new_y)
+        arm.append(point)
+    return arm
+
+def create_sensors(space, car, carshape, shape='trio'):
     car_position = car.position
     car_radius = carshape.radius
     car_angle = car.angle
 
     sensors = []
-    rotation = [np.pi/4, -np.pi/4]
-    add_rate = 0.5
 
-    for i in range(1):
-        x = car_position[0] + (1.3 + (i+1) * add_rate) * car_radius * np.cos(car_angle)
-        y = car_position[1] + (1.3 + (i+1) * add_rate) * car_radius * np.sin(car_angle)
-        print(x, y)
-        point, _ = add_point(space, x, y)
-        sensors.append(point)
+    if shape == 'trio':
+        rotation = [-np.pi/4, 0, np.pi/4]
+        middle_sensor = create_arm(space,car,carshape,add_rate=1.5, rotation = rotation[1])
+        left_sensor = create_arm(space,car,carshape,add_rate=1.5, rotation = rotation[0])
+        right_sensor = create_arm(space,car,carshape,add_rate=1.5, rotation = rotation[2])
+
+    sensors.append(left_sensor)
+    sensors.append(middle_sensor)
+    sensors.append(right_sensor)
+
     return sensors
+
+def car_angel_changed(car, changed_angle, sensors):
+    car.angle += (changed_angle)
+    for sensor in sensors:
+        for arm in sensor:
+            # new_x = ((car.position[0] - sensor.position[0]) * np.cos(np.pi / 4) + (
+            # car.position[1] - sensor.position[1]) * np.sin(np.pi / 4)) + sensor.position[0]
+            # new_y = 600-(((sensor.position[1] - car.position[1]) * np.sin(np.pi / 4) - (
+            # sensor.position[0] - car.position[0]) * np.cos(np.pi / 4)) + sensor.position[1])
+
+            # new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (
+            # sensor.position[1] - car.position[1]) * np.sin(np.pi / 4)) + car.position[0]
+            # new_y = 600-(((car.position[1] - sensor.position[1]) * np.sin(np.pi / 4) + (
+            # car.position[0] - sensor.position[0]) * np.cos(np.pi / 4)) + car.position[1])
+
+            new_x = ((arm.position[0] - car.position[0]) * np.cos(changed_angle) - (
+            arm.position[1] - car.position[1]) * np.sin(
+                changed_angle)) + car.position[0]
+            new_y = ((arm.position[0] - car.position[0]) * np.sin(changed_angle) + (
+            arm.position[1] - car.position[1]) * np.cos(
+                changed_angle)) + car.position[1]
+            arm.position = new_x, new_y
+
+def cats_move(cats, log_counter):
+    ### cat moving
+    cats.position = cats.position[0] + 2 * np.cos(cats.angle), \
+                    cats.position[1] + 2 * np.sin(cats.angle)
+    if (log_counter.step_count % 50 == 0):
+        cats_changed_angle = np.random.randint(-1, 2) * (np.pi / 4)
+        cats.angle += cats_changed_angle
+    if (cats.position[0] < BORDER or cats.position[0] > SCREEN_WIDTH - BORDER) or (
+            cats.position[1] < BORDER or cats.position[1] > SCREEN_HEIGHT - BORDER):
+        cats.angle += np.pi
+
+def car_move(car, sensors):
+    car.position = car.position[0] + 2 * np.cos(car.angle), car.position[1] + 2 * np.sin(car.angle)
+    for sensor in sensors:
+        for point in sensor:
+            point.position = point.position[0] + 2 * np.cos(car.angle), point.position[1] + 2 * np.sin(car.angle)
+
+def reset_game(space, car, carshape, sensors,arm_shape = 'trio'):
+    create_an_expmple(False, config_load(), LogCounter())
+    sys.exit(0)
 
 def create_an_expmple(map_random, config, log_counter):
     crashed = False
+    ep = Experience_Pool()
 
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
@@ -136,55 +200,29 @@ def create_an_expmple(map_random, config, log_counter):
     ### create the world map
     ### create the car
     car, carshape = create_car(space, config['cars'])
-    sensors = create_sensors(space,car,carshape)
+    sensors = create_sensors(space,car,carshape,'trio')
 
     ### create walls
-    # walls = create_walls(space, config['walls'])
+    walls = create_walls(space, config['walls'])
     ### create stones
-    # stones, stones_shape = create_stones(space, config['stones'])
+    stones, stones_shape = create_stones(space, config['stones'])
     ### create cats
     cats, cats_shape = create_cats(space, config['cats'])
 
-    tick_to_change_cat_ango = 0
+
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
                 sys.exit(0)
             elif event.type == MOVE:
-                car.angle += (np.pi / 4)
-                for sensor in sensors:
-                    # new_x = ((car.position[0] - sensor.position[0]) * np.cos(np.pi / 4) + (
-                    # car.position[1] - sensor.position[1]) * np.sin(np.pi / 4)) + sensor.position[0]
-                    # new_y = 600-(((sensor.position[1] - car.position[1]) * np.sin(np.pi / 4) - (
-                    # sensor.position[0] - car.position[0]) * np.cos(np.pi / 4)) + sensor.position[1])
+                car_angel_changed(car,np.pi/4,sensors)
+            elif event.type == RESET:
+                reset_game(space, car, sensors, np.pi/4)
+        car_move(car,sensors)
+        cats_move(cats,log_counter)
 
-                    # new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (
-                    # sensor.position[1] - car.position[1]) * np.sin(np.pi / 4)) + car.position[0]
-                    # new_y = 600-(((car.position[1] - sensor.position[1]) * np.sin(np.pi / 4) + (
-                    # car.position[0] - sensor.position[0]) * np.cos(np.pi / 4)) + car.position[1])
-
-                    new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (sensor.position[1] - car.position[1]) * np.sin(
-                        np.pi / 4)) + car.position[0]
-                    new_y = ((sensor.position[0] - car.position[0]) * np.sin(np.pi / 4) + (sensor.position[1] - car.position[1]) * np.cos(
-                        np.pi / 4)) + car.position[1]
-                    sensor.position = new_x, new_y
-                    print(sensor.position)
-        car.position = car.position[0] + 2 * np.cos(car.angle), car.position[1] + 2 * np.sin(car.angle)
-        for sensor in sensors:
-            sensor.position = sensor.position[0]+ 2 * np.cos(car.angle), sensor.position[1]+2 * np.sin(car.angle)
-
-        driving_direction = Vec2d(1,0).rotate(car.angle)
         if (car.position[0] < BORDER-5 or car.position[0] > SCREEN_WIDTH-BORDER+5 ) or (car.position[1] < BORDER-5 or car.position[1] >SCREEN_HEIGHT-BORDER+5):
-            car.angle += np.pi/2
-
-        ### cat moving
-        cats.position = cats.position[0] + 2 * np.cos(cats.angle), \
-                        cats.position[1] + 2 * np.sin(cats.angle)
-        if(log_counter.step_count % 50 == 0):
-            cats_changed_angle = np.random.randint(-1,2) * (np.pi / 4)
-            cats.angle += cats_changed_angle
-        if (cats.position[0] < BORDER or cats.position[0] > SCREEN_WIDTH-BORDER ) or (cats.position[1] < BORDER or cats.position[1] >SCREEN_HEIGHT-BORDER):
-            cats.angle += np.pi/2
+            car_angel_changed(car, np.pi / 2, sensors)
 
         space.step(1 / 50.0)
 
@@ -193,6 +231,16 @@ def create_an_expmple(map_random, config, log_counter):
 
         pygame.display.flip()
         clock.tick(50)
+
+        old_state = car.position
+        new_state = old_state
+        if log_counter.step_count % 50 == 0:
+            new_state = car.position
+            action = car.angle
+            reward = 50
+            experience = Experience(old_state,action,new_state,reward)
+            ep.experienct_pool.append(experience)
+            old_state = new_state
         log_counter.step_count += 1
 
 def main():
