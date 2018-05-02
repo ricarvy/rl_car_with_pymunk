@@ -16,9 +16,9 @@ dict = {
             {
                 'initialize_position' : [BORDER,BORDER],
                 'mass' : 10,
-                'radius' : 10,
+                'radius' : 15,
                 'color' : 'yellowgreen'
-             },
+             }
         ],
 
     'walls':
@@ -40,12 +40,16 @@ dict = {
     'stones':
         [
             {
-                'mass' : 999999,
-                'moment' : [60, 60],
-                'initialize_position' : [500, 100],
-                'size' : [60, 60],
-                'inner_radius' : 0,
-                'color' : 'darkgray'
+                'initialize_position': [500, 100],
+                'mass': 10,
+                'radius': 50,
+                'color': 'black'
+            },
+            {
+                'initialize_position': [500, 500],
+                'mass': 10,
+                'radius': 40,
+                'color': 'black'
             }
         ],
 
@@ -54,8 +58,18 @@ dict = {
             {
                 'initialize_position' : [100, 500],
                 'mass' : 1,
-                'radius' : 15,
+                'radius' : 10,
                 'color' : 'orange'
+            }
+        ],
+
+    'sensors':
+        [
+            {
+                'sensor_num' : 5,
+                'deriviate_rate' : 0.5,
+                'add_rate' : 1,
+                'color' : 'black'
             }
         ]
 }

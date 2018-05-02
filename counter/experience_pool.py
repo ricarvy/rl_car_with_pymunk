@@ -23,3 +23,10 @@ class Experience_Pool:
 
         self.limitation = 10000
 
+    def show_all(self):
+        print('\nCurrent Experiece Pool:/n Length : ',len(self.experienct_pool))
+        for experience in self.experienct_pool:
+            print('Old state: ', experience.old_state,
+                  '   action: ' , experience.action,
+                  '   reward: ',experience.reward,
+                  '   new_state: ',experience.new_state,)

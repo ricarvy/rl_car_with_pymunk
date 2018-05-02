@@ -17,6 +17,7 @@ from argparse import ArgumentParser
 
 import json
 from tools.json_loader import config_load
+from tools.distance_calculator import calculate_distance
 from counter.log_counter import LogCounter
 
 from counter.experience_pool import Experience,Experience_Pool
@@ -50,6 +51,29 @@ def add_ball(space):
     space.add(body, shape) # 5
     return body, shape
 
+def is_detected(space, car, car_shape, stones, stones_shape, cats, cats_shape, threshold):
+    car_position = [car.position[0],car.position[1]]
+
+
+    stone_positions_set = []
+    for stone in stones:
+        stone_positions_set.append([stone.position[0], stone.position[1]])
+
+    for stone_position in stone_positions_set:
+        distance = calculate_distance(stone_position, car_position)
+        if distance <= threshold:
+            print('detected! the distance is ',distance, ' , from car and stone')
+
+    cats_position_set = []
+    for cat in cats:
+        cats_position_set.append([cat.position[0], cat.position[1]])
+
+    for cat_position in cats_position_set:
+        distance = calculate_distance(cat_position, car_position)
+        if distance <= threshold:
+            print('detected! the distance is ',distance, ' , from car and cat')
+    return distance
+
 def create_car(space, car_configs):
     for car_config in car_configs:
         mass = car_config['mass']
@@ -74,17 +98,56 @@ def create_walls(space, wall_configs):
     return l
 
 def create_stones(space, stone_configs):
+    stones_body = []
+    stones_shape = []
     for stone_config in stone_configs:
         mass = stone_config['mass']
-        moment = pymunk.moment_for_box(mass, (stone_config['moment'][0], stone_config['moment'][1]))
-        body = pymunk.Body(mass,moment,body_type=pymunk.Body.STATIC)
-        body.position = stone_config['initialize_position'][0], stone_config['initialize_position'][1]
-        shape = pymunk.Poly.create_box(body, (stone_config['size'][0],stone_config['size'][1]), stone_config['inner_radius'])
+        radius = stone_config['radius']
+        moment = pymunk.moment_for_circle(mass, 0, radius)  # 1
+        body = pymunk.Body(mass, moment,body_type=pymunk.Body.STATIC)  # 2
+        body.position = stone_config['initialize_position'][0], stone_config['initialize_position'][1]  # 3
+        shape = pymunk.Circle(body, radius)  # 4
         shape.color = THECOLORS[stone_config['color']]
-        space.add(body, shape)
-    return body,shape
+        space.add(body, shape)  # 5
+        stones_body.append(body)
+        stones_shape.append(shape)
+    return stones_body, stones_shape
+
+def create_random_stones(space, stones_num):
+    stones_body = []
+    stones_shape = []
+    for index in range(stones_num):
+        mass = np.random.randint(10,50)
+        radius = np.random.randint(20,50)
+        moment = pymunk.moment_for_circle(mass, 0, radius)  # 1
+        body = pymunk.Body(mass, moment,body_type=pymunk.Body.STATIC)  # 2
+        body.position = np.random.randint(100,500), np.random.randint(100,500)
+        shape = pymunk.Circle(body, radius)  # 4
+        shape.color = THECOLORS['black']
+        space.add(body, shape)  # 5
+        stones_body.append(body)
+        stones_shape.append(shape)
+    return stones_body, stones_shape
+
+def create_random_cats(space, cats_num):
+    cats_body = []
+    cats_shape = []
+    for cat_config in range(cats_num):
+        mass = 1
+        radius = 10
+        moment = pymunk.moment_for_circle(mass, 0, radius)  # 1
+        body = pymunk.Body(mass, moment)  # 2
+        body.position = np.random.randint(100,500), np.random.randint(100, 500)  # 3
+        shape = pymunk.Circle(body, radius)  # 4
+        shape.color = THECOLORS['orange']
+        space.add(body, shape)  # 5
+        cats_body.append(body)
+        cats_shape.append(shape)
+    return cats_body, cats_shape
 
 def create_cats(space, cat_configs):
+    cats_body = []
+    cats_shape = []
     for cat_config in cat_configs:
         mass = cat_config['mass']
         radius = cat_config['radius']
@@ -94,9 +157,11 @@ def create_cats(space, cat_configs):
         shape = pymunk.Circle(body, radius)  # 4
         shape.color = THECOLORS[cat_config['color']]
         space.add(body, shape)  # 5
-    return body, shape
+        cats_body.append(body)
+        cats_shape.append(shape)
+    return cats_body, cats_shape
 
-def add_point(space,x,y):
+def add_point(space,x,y,color):
     mass = 1
     radius = 2
     moment = pymunk.moment_for_circle(mass, 0, radius) # 1
@@ -107,39 +172,55 @@ def add_point(space,x,y):
     space.add(body, shape) # 5
     return body, shape
 
-def create_arm(space, car, carshape, add_rate, rotation):
+def create_arm(space, car, carshape, add_rate, rotation,sensor_num, deriviate_rate, color):
     car_position = car.position
     car_radius = carshape.radius
     car_angle = car.angle
     arm = []
-    for i in range(5):
-        x = ((car_position[0] + (1.3 + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
-        y = ((car_position[1] + (1.3 + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
+    for i in range(sensor_num):
+        x = ((car_position[0] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
+        y = ((car_position[1] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
         new_x = x * np.cos(rotation) - y * np.sin(rotation) + car_position[0]
         new_y = x * np.sin(rotation) + y * np.cos(rotation) + car_position[1]
-        print(new_x, new_y)
-        point, _ = add_point(space, new_x, new_y)
+        point, _ = add_point(space, new_x, new_y, color)
         arm.append(point)
     return arm
 
-def create_sensors(space, car, carshape, shape='trio'):
+def create_sensors(space, car, carshape, config, shape='trio'):
     car_position = car.position
     car_radius = carshape.radius
     car_angle = car.angle
 
     sensors = []
+    print(config['add_rate'])
 
     if shape == 'trio':
         rotation = [-np.pi/4, 0, np.pi/4]
-        middle_sensor = create_arm(space,car,carshape,add_rate=1.5, rotation = rotation[1])
-        left_sensor = create_arm(space,car,carshape,add_rate=1.5, rotation = rotation[0])
-        right_sensor = create_arm(space,car,carshape,add_rate=1.5, rotation = rotation[2])
+        middle_sensor = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[1],
+                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
+        left_sensor = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[0],
+                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
+        right_sensor = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[2],
+                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
 
     sensors.append(left_sensor)
     sensors.append(middle_sensor)
     sensors.append(right_sensor)
 
     return sensors
+
+def sensors_rectify(space, car, carshape, sensors, rotation,add_rate):
+    car_position = car.position
+    car_angle = car.angle
+    car_radius = carshape.radius
+
+    for k,sensor in enumerate(sensors):
+        for i,point in enumerate(sensor):
+            x = ((car_position[0] + (0.5 + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
+            y = ((car_position[1] + (0.5 + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
+            new_x = x * np.cos(rotation[k]) - y * np.sin(rotation[k]) + car_position[0]
+            new_y = x * np.sin(rotation[k]) + y * np.cos(rotation[k]) + car_position[1]
+            point.position = new_x,new_y
 
 def car_angel_changed(car, changed_angle, sensors):
     car.angle += (changed_angle)
@@ -200,16 +281,21 @@ def create_an_expmple(map_random, config, log_counter):
     ### create the world map
     ### create the car
     car, carshape = create_car(space, config['cars'])
-    sensors = create_sensors(space,car,carshape,'trio')
+    sensors = create_sensors(space,car,carshape,config['sensors'][0] ,'trio')
 
-    ### create walls
-    walls = create_walls(space, config['walls'])
-    ### create stones
-    stones, stones_shape = create_stones(space, config['stones'])
-    ### create cats
-    cats, cats_shape = create_cats(space, config['cats'])
+    if map_random == False:
+        ### create walls
+        # walls = create_walls(space, config['walls'])
+        ### create stones
+        stones, stones_shape = create_stones(space, config['stones'])
+        ### create cats
+        cats, cats_shape = create_cats(space, config['cats'])
+    else:
+        stones,stones_shape = create_random_stones(space, 3)
+        cats, cats_shape = create_random_cats(space, 2)
 
-
+    ### initialize old_State
+    old_state = Vec2d(BORDER, BORDER)
     while True:
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -219,7 +305,11 @@ def create_an_expmple(map_random, config, log_counter):
             elif event.type == RESET:
                 reset_game(space, car, sensors, np.pi/4)
         car_move(car,sensors)
-        cats_move(cats,log_counter)
+        for cat in cats:
+            cats_move(cat,log_counter)
+
+        # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
+        sensors_rectify(space,car,carshape,sensors,[-np.pi/4,0,np.pi/4],1)
 
         if (car.position[0] < BORDER-5 or car.position[0] > SCREEN_WIDTH-BORDER+5 ) or (car.position[1] < BORDER-5 or car.position[1] >SCREEN_HEIGHT-BORDER+5):
             car_angel_changed(car, np.pi / 2, sensors)
@@ -232,15 +322,18 @@ def create_an_expmple(map_random, config, log_counter):
         pygame.display.flip()
         clock.tick(50)
 
-        old_state = car.position
+
         new_state = old_state
-        if log_counter.step_count % 50 == 0:
+
+        if log_counter.step_count % 100 == 0:
             new_state = car.position
             action = car.angle
             reward = 50
             experience = Experience(old_state,action,new_state,reward)
+            print(old_state,'   ',new_state)
             ep.experienct_pool.append(experience)
             old_state = new_state
+            ep.show_all()
         log_counter.step_count += 1
 
 def main():
