@@ -23,6 +23,12 @@ the following:
 
 <code> pip install -r requirements.txt </code>
 
+<br><br>
+
+Before run the code, you have to define all the parameters for the map of whole game, 
+there are two ways to modify your configuration file:
+
+* 1.Edit your own file in the root path ('rl_car_with_pymunk/'), the format json is like below:
 
 
 <code></code>
