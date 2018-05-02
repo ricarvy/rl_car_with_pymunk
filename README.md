@@ -30,6 +30,6 @@ there are two ways to modify your configuration file:
 
 * 1.Edit your own file in the root path ('rl_car_with_pymunk/'), the format json is like below:
 
-![json_format.png]https://github.com/ricarvy/rl_car_with_pymunk/blob/master/image/json_format.png
+![GitHub](https://github.com/ricarvy/rl_car_with_pymunk/blob/master/image/json_format.png "GitHub,Social Coding")
 
 <code></code>
