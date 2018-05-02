@@ -17,7 +17,7 @@ from argparse import ArgumentParser
 
 import json
 from tools.json_loader import config_load
-from tools.distance_calculator import calculate_distance
+from tools.distance_calculator import calculate_distance, calculate_angel
 from counter.log_counter import LogCounter
 
 from counter.experience_pool import Experience,Experience_Pool
@@ -53,7 +53,6 @@ def add_ball(space):
 
 def is_detected(space, car, car_shape, stones, stones_shape, cats, cats_shape, threshold):
     car_position = [car.position[0],car.position[1]]
-
 
     stone_positions_set = []
     for stone in stones:
@@ -177,6 +176,7 @@ def create_arm(space, car, carshape, add_rate, rotation,sensor_num, deriviate_ra
     car_radius = carshape.radius
     car_angle = car.angle
     arm = []
+    arm_length = 0
     for i in range(sensor_num):
         x = ((car_position[0] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
         y = ((car_position[1] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
@@ -184,7 +184,8 @@ def create_arm(space, car, carshape, add_rate, rotation,sensor_num, deriviate_ra
         new_y = x * np.sin(rotation) + y * np.cos(rotation) + car_position[1]
         point, _ = add_point(space, new_x, new_y, color)
         arm.append(point)
-    return arm
+        arm_length = calculate_distance([new_x, new_y], car_position)
+    return arm, arm_length
 
 def create_sensors(space, car, carshape, config, shape='trio'):
     car_position = car.position
@@ -194,20 +195,22 @@ def create_sensors(space, car, carshape, config, shape='trio'):
     sensors = []
     print(config['add_rate'])
 
+    middle_sensor_length = -1
+
     if shape == 'trio':
         rotation = [-np.pi/4, 0, np.pi/4]
-        middle_sensor = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[1],
+        middle_sensor, middle_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[1],
                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
-        left_sensor = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[0],
+        left_sensor, left_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[0],
                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
-        right_sensor = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[2],
+        right_sensor, right_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[2],
                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
 
     sensors.append(left_sensor)
     sensors.append(middle_sensor)
     sensors.append(right_sensor)
 
-    return sensors
+    return sensors, middle_sensor_length
 
 def sensors_rectify(space, car, carshape, sensors, rotation,add_rate):
     car_position = car.position
@@ -265,12 +268,27 @@ def reset_game(map_random, space, car, carshape, sensors,arm_shape = 'trio'):
     create_an_expmple(map_random, config_load(), LogCounter())
     sys.exit(0)
 
+def get_distance_level(distance, sensor_length):
+    element = sensor_length / 5
+    for i in range(5):
+        if distance <= element * (i+1):
+            return i
+    return -1
+
+def get_reading(car, car_shape, sensors, sensor_length, stones, stones_shape, cats, cats_shape):
+    car_position = car.position
+    car_angle = car.angle
+    reading = [5, 5, 5]
+    
+    return reading
+
 def create_an_expmple(map_random, config, log_counter):
     crashed = False
     ep = Experience_Pool()
 
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
+    pygame.draw.circle(screen, (255, 255, 255), (300,300), 2)
     pygame.display.set_caption('Reinforcement Learning Game')
     clock = pygame.time.Clock()
 
@@ -281,7 +299,7 @@ def create_an_expmple(map_random, config, log_counter):
     ### create the world map
     ### create the car
     car, carshape = create_car(space, config['cars'])
-    sensors = create_sensors(space,car,carshape,config['sensors'][0] ,'trio')
+    sensors, sensor_length = create_sensors(space,car,carshape,config['sensors'][0] ,'trio')
 
     if map_random == False:
         ### create walls
@@ -302,11 +320,16 @@ def create_an_expmple(map_random, config, log_counter):
                 sys.exit(0)
             elif event.type == MOVE:
                 car_angel_changed(car,np.pi/4,sensors)
+
             elif event.type == RESET:
                 reset_game(map_random, space, car, sensors, np.pi/4)
-        car_move(car,sensors)
+        car_move(car, sensors)
         for cat in cats:
             cats_move(cat,log_counter)
+        reading = get_reading(car,carshape,sensors,sensor_length,stones,stones_shape, cats, cats_shape)
+
+        if (0 in reading):
+            reset_game(map_random,space,car,carshape,sensors,'trio')
 
         # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
         sensors_rectify(space,car,carshape,sensors,[-np.pi/4,0,np.pi/4],1)
@@ -330,10 +353,9 @@ def create_an_expmple(map_random, config, log_counter):
             action = car.angle
             reward = 50
             experience = Experience(old_state,action,new_state,reward)
-            print(old_state,'   ',new_state)
             ep.experienct_pool.append(experience)
             old_state = new_state
-            ep.show_all()
+            # ep.show_all()
         log_counter.step_count += 1
 
 def main():
