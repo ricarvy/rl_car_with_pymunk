@@ -261,8 +261,8 @@ def car_move(car, sensors):
         for point in sensor:
             point.position = point.position[0] + 2 * np.cos(car.angle), point.position[1] + 2 * np.sin(car.angle)
 
-def reset_game(space, car, carshape, sensors,arm_shape = 'trio'):
-    create_an_expmple(False, config_load(), LogCounter())
+def reset_game(map_random, space, car, carshape, sensors,arm_shape = 'trio'):
+    create_an_expmple(map_random, config_load(), LogCounter())
     sys.exit(0)
 
 def create_an_expmple(map_random, config, log_counter):
@@ -303,7 +303,7 @@ def create_an_expmple(map_random, config, log_counter):
             elif event.type == MOVE:
                 car_angel_changed(car,np.pi/4,sensors)
             elif event.type == RESET:
-                reset_game(space, car, sensors, np.pi/4)
+                reset_game(map_random, space, car, sensors, np.pi/4)
         car_move(car,sensors)
         for cat in cats:
             cats_move(cat,log_counter)
