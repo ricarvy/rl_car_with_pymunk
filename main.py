@@ -271,7 +271,7 @@ def create_an_expmple(map_random, config, log_counter):
 
     pygame.init()
     screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
-    pygame.display.set_caption("Joints. Just wait and the L will tip over")
+    pygame.display.set_caption('Reinforcement Learning Game')
     clock = pygame.time.Clock()
 
     space = pymunk.Space()
