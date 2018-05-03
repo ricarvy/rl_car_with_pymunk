@@ -22,7 +22,7 @@ from counter.log_counter import LogCounter
 
 from counter.experience_pool import Experience,Experience_Pool
 
-SCREEN_HEIGHT = 600
+SCREEN_HEIGHT =600
 SCREEN_WIDTH = 600
 BORDER = 50
 QUIT = 12
@@ -50,28 +50,6 @@ def add_ball(space):
     shape = pymunk.Circle(body, radius) # 4
     space.add(body, shape) # 5
     return body, shape
-
-def is_detected(space, car, car_shape, stones, stones_shape, cats, cats_shape, threshold):
-    car_position = [car.position[0],car.position[1]]
-
-    stone_positions_set = []
-    for stone in stones:
-        stone_positions_set.append([stone.position[0], stone.position[1]])
-
-    for stone_position in stone_positions_set:
-        distance = calculate_distance(stone_position, car_position)
-        if distance <= threshold:
-            print('detected! the distance is ',distance, ' , from car and stone')
-
-    cats_position_set = []
-    for cat in cats:
-        cats_position_set.append([cat.position[0], cat.position[1]])
-
-    for cat_position in cats_position_set:
-        distance = calculate_distance(cat_position, car_position)
-        if distance <= threshold:
-            print('detected! the distance is ',distance, ' , from car and cat')
-    return distance
 
 def create_car(space, car_configs):
     for car_config in car_configs:
@@ -299,7 +277,6 @@ def get_reading(car, car_shape, sensors, sensor_length, stones, stones_shape, ca
             distances.append(stone_distance)
             distance_level = get_distance_level(distances, sensor_length)
         reading.append(distance_level)
-    print(reading)
 
 
     return reading
@@ -358,7 +335,8 @@ def create_an_expmple(map_random, config, log_counter):
         sensors_rectify(space,car,carshape,sensors,[np.pi/4,0,-np.pi/4],1)
 
         if (car.position[0] < BORDER-5 or car.position[0] > SCREEN_WIDTH-BORDER+5 ) or (car.position[1] < BORDER-5 or car.position[1] >SCREEN_HEIGHT-BORDER+5):
-            car_angel_changed(car, np.pi / 2, sensors)
+            reset_game(map_random, space, car, sensors, np.pi / 4)
+            print('reset')
 
         space.step(1 / 50.0)
 
