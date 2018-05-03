@@ -44,12 +44,6 @@ dict = {
                 'mass': 10,
                 'radius': 50,
                 'color': 'black'
-            },
-            {
-                'initialize_position': [500, 500],
-                'mass': 10,
-                'radius': 40,
-                'color': 'black'
             }
         ],
 

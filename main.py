@@ -167,7 +167,7 @@ def add_point(space,x,y,color):
     body = pymunk.Body(mass, moment) # 2
     body.position = x, y
     shape = pymunk.Circle(body, radius) # 4
-    shape.color = THECOLORS['black']
+    shape.color = THECOLORS[color]
     space.add(body, shape) # 5
     return body, shape
 
@@ -193,16 +193,15 @@ def create_sensors(space, car, carshape, config, shape='trio'):
     car_angle = car.angle
 
     sensors = []
-    print(config['add_rate'])
 
     middle_sensor_length = -1
 
     if shape == 'trio':
-        rotation = [-np.pi/4, 0, np.pi/4]
+        rotation = [np.pi/4, 0, -np.pi/4]
         middle_sensor, middle_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[1],
                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
         left_sensor, left_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[0],
-                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
+                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = 'pink')
         right_sensor, right_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[2],
                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
 
@@ -258,28 +257,51 @@ def cats_move(cats, log_counter):
             cats.position[1] < BORDER or cats.position[1] > SCREEN_HEIGHT - BORDER):
         cats.angle += np.pi
 
-def car_move(car, sensors):
-    car.position = car.position[0] + 2 * np.cos(car.angle), car.position[1] + 2 * np.sin(car.angle)
+def car_move(car, sensors, speed):
+    car.position = car.position[0] + speed * np.cos(car.angle), car.position[1] + speed * np.sin(car.angle)
     for sensor in sensors:
         for point in sensor:
-            point.position = point.position[0] + 2 * np.cos(car.angle), point.position[1] + 2 * np.sin(car.angle)
+            point.position = point.position[0] + speed * np.cos(car.angle), point.position[1] + speed * np.sin(car.angle)
 
 def reset_game(map_random, space, car, carshape, sensors,arm_shape = 'trio'):
     create_an_expmple(map_random, config_load(), LogCounter())
     sys.exit(0)
 
-def get_distance_level(distance, sensor_length):
-    element = sensor_length / 5
-    for i in range(5):
-        if distance <= element * (i+1):
-            return i
-    return -1
+def get_distance_level(distances, sensor_length):
+    if distances[0] <= 0:
+        return 0
+    if distances[len(distances)-1] >0:
+        return len(distances)
+    for i in range(len(distances)):
+        if i == 0:
+            continue
+        if distances[i-1]>0 and distances[i]<0:
+            return i+1
 
 def get_reading(car, car_shape, sensors, sensor_length, stones, stones_shape, cats, cats_shape):
     car_position = car.position
     car_angle = car.angle
-    reading = [5, 5, 5]
-    
+    reading = []
+    for i,sensor in enumerate(sensors):
+        distances=[]
+        for p,point in enumerate(sensor):
+            stone_distance = 9999999
+            for s,stone in enumerate(stones):
+                distance = calculate_distance(point.position, stone.position) - stones_shape[s].radius
+                if stone_distance > distance:
+                    stone_distance = distance
+
+            for c,cat in enumerate(cats):
+                distance = calculate_distance(point.position, cat.position) - stones_shape[c].radius
+                if stone_distance > distance:
+                    stone_distance = distance
+
+            distances.append(stone_distance)
+            distance_level = get_distance_level(distances, sensor_length)
+        reading.append(distance_level)
+    print(reading)
+
+
     return reading
 
 def create_an_expmple(map_random, config, log_counter):
@@ -323,16 +345,17 @@ def create_an_expmple(map_random, config, log_counter):
 
             elif event.type == RESET:
                 reset_game(map_random, space, car, sensors, np.pi/4)
-        car_move(car, sensors)
+        car_move(car, sensors, 3)
         for cat in cats:
             cats_move(cat,log_counter)
+
         reading = get_reading(car,carshape,sensors,sensor_length,stones,stones_shape, cats, cats_shape)
 
         if (0 in reading):
             reset_game(map_random,space,car,carshape,sensors,'trio')
 
         # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
-        sensors_rectify(space,car,carshape,sensors,[-np.pi/4,0,np.pi/4],1)
+        sensors_rectify(space,car,carshape,sensors,[np.pi/4,0,-np.pi/4],1)
 
         if (car.position[0] < BORDER-5 or car.position[0] > SCREEN_WIDTH-BORDER+5 ) or (car.position[1] < BORDER-5 or car.position[1] >SCREEN_HEIGHT-BORDER+5):
             car_angel_changed(car, np.pi / 2, sensors)
