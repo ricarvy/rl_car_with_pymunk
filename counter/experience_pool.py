@@ -30,3 +30,9 @@ class Experience_Pool:
                   '   action: ' , experience.action,
                   '   reward: ',experience.reward,
                   '   new_state: ',experience.new_state,)
+
+    def get_experiece_pool_length(self):
+        return len(self.experienct_pool)
+
+    def pop_old_experience(self):
+        self.experienct_pool.pop(0)

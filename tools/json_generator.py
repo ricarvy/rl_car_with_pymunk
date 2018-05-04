@@ -17,7 +17,8 @@ dict = {
                 'initialize_position' : [BORDER,BORDER],
                 'mass' : 10,
                 'radius' : 15,
-                'color' : 'yellowgreen'
+                'color' : 'yellowgreen',
+                'rotation' : .2,
              }
         ],
 
