@@ -6,7 +6,7 @@
 
 import json
 
-path = '../config.json'
+path = 'config.json'
 
 def config_load():
     with open(path, 'r') as file:

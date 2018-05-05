@@ -11,6 +11,7 @@ import pymunk #1
 import numpy as np
 import timeit
 import random
+import datetime
 from pymunk.pygame_util import DrawOptions
 from pygame.colordict import THECOLORS
 from pymunk.vec2d import Vec2d
@@ -25,6 +26,7 @@ from counter.log_counter import LogCounter
 from models.model import Model
 
 from counter.experience_pool import Experience,Experience_Pool
+from elements.cars import Car, Sensors
 
 SCREEN_HEIGHT =600
 SCREEN_WIDTH = 600
@@ -36,7 +38,7 @@ IS_CRASHED = False
 OBSERVE = 100
 NUM_INPUT = 3
 GAMMA = 0.9
-TRAIN_FRAMES = 100000
+TRAIN_FRAMES = 150
 
 class LossHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -56,28 +58,30 @@ def build_paser():
 
     return parser
 
-def add_ball(space):
-    mass = 1
-    radius = 14
-    moment = pymunk.moment_for_circle(mass, 0, radius) # 1
-    body = pymunk.Body(mass, moment) # 2
-    x = np.random.randint(120, 380)
-    body.position = x, 550 # 3
-    shape = pymunk.Circle(body, radius) # 4
-    space.add(body, shape) # 5
-    return body, shape
+### original add_ball
+# def add_ball(space):
+#     mass = 1
+#     radius = 14
+#     moment = pymunk.moment_for_circle(mass, 0, radius) # 1
+#     body = pymunk.Body(mass, moment) # 2
+#     x = np.random.randint(120, 380)
+#     body.position = x, 550 # 3
+#     shape = pymunk.Circle(body, radius) # 4
+#     space.add(body, shape) # 5
+#     return body, shape
 
-def create_car(space, car_configs):
-    for car_config in car_configs:
-        mass = car_config['mass']
-        radius = car_config['radius']
-        moment = pymunk.moment_for_circle(mass, 0, radius)  # 1
-        body = pymunk.Body(mass, moment)  # 2
-        body.position = car_config['initialize_position'][0], car_config['initialize_position'][1]  # 3
-        shape = pymunk.Circle(body, radius)  # 4
-        shape.color = THECOLORS[car_config['color']]
-        space.add(body, shape)  # 5
-    return body, shape
+### original function create_car
+# def create_car(space, car_configs):
+#     for car_config in car_configs:
+#         mass = car_config['mass']
+#         radius = car_config['radius']
+#         moment = pymunk.moment_for_circle(mass, 0, radius)  # 1
+#         body = pymunk.Body(mass, moment)  # 2
+#         body.position = car_config['initialize_position'][0], car_config['initialize_position'][1]  # 3
+#         shape = pymunk.Circle(body, radius)  # 4
+#         shape.color = THECOLORS[car_config['color']]
+#         space.add(body, shape)  # 5
+#     return body, shape
 
 def create_walls(space, wall_configs):
     for wall_config in wall_configs:
@@ -154,17 +158,19 @@ def create_cats(space, cat_configs):
         cats_shape.append(shape)
     return cats_body, cats_shape
 
-def add_point(space,x,y,color):
-    mass = 1
-    radius = 2
-    moment = pymunk.moment_for_circle(mass, 0, radius) # 1
-    body = pymunk.Body(mass, moment) # 2
-    body.position = x, y
-    shape = pymunk.Circle(body, radius) # 4
-    shape.color = THECOLORS[color]
-    space.add(body, shape) # 5
-    return body, shape
+### original add_point
+# def add_point(space,x,y,color):
+#     mass = 1
+#     radius = 2
+#     moment = pymunk.moment_for_circle(mass, 0, radius) # 1
+#     body = pymunk.Body(mass, moment) # 2
+#     body.position = x, y
+#     shape = pymunk.Circle(body, radius) # 4
+#     shape.color = THECOLORS[color]
+#     space.add(body, shape) # 5
+#     return body, shape
 
+### original create_arm
 def create_arm(space, car, carshape, add_rate, rotation,sensor_num, deriviate_rate, color):
     car_position = car.position
     car_radius = carshape.radius
@@ -300,7 +306,7 @@ def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, c
     return reading
 
 def get_reward_and_new_state(action, readings, car, carshape, sensors, sensor_length, stones, stones_shape, cats, cats_shape):
-    state = readings
+    state = np.array(readings).reshape(1, 3)
     # normalized_readings = [(x - sensor_length / 2) / sensor_length for x in readings]
     # state = np.array([normalized_readings])
 
@@ -362,11 +368,13 @@ def process_minibatch(minibatch, model):
     for memory in minibatch:
         # Get stored values.
         old_state_m, action_m, reward_m, new_state_m = memory
+        old_state_m = np.array(old_state_m).reshape(1,3)
+        new_state_m = np.array(new_state_m).reshape((1,3))
         # print('old_state_m ',np.array(old_state_m).reshape((3,)).shape)
         # Get prediction on old state.
-        old_qval = model.predict(np.array(old_state_m).reshape((3,1)), batch_size=1)
+        old_qval = model.predict(old_state_m, batch_size=1)
         # Get prediction on new state.
-        newQ = model.predict(np.array(new_state_m), batch_size=1)
+        newQ = model.predict(new_state_m, batch_size=1)
         # Get our predicted best move.
         maxQ = np.max(newQ)
         y = np.zeros((1, 3))
@@ -414,8 +422,11 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
 
     ### create the world map
     ### create the car
-    car, carshape = create_car(space, config['cars'])
-    sensors, sensor_length = create_sensors(space,car,carshape,config['sensors'][0], 'trio')
+    car_gen = Car(space, config['cars'])
+    # car, carshape = create_car(space, config['cars'])
+    car, carshape = car_gen.get_car()
+    sensors, sensor_length = Sensors(space, car, carshape, config['sensors'][0], 'trio').get_sensors()
+    # sensors, sensor_length = create_sensors(space,car,carshape,config['sensors'][0], 'trio')
 
     if map_random == False:
         ### create walls
@@ -444,14 +455,14 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
                 car_angel_changed(car,rotation_rate,sensors)
 
             elif event.type == RESET:
-                reset_game(map_random, space, car, sensors, log_counter, ep, model)
+                reset_game(map_random, space, car, carshape, sensors, log_counter, ep, model)
         car_move(car, sensors, 3)
         for cat in cats:
             cats_move(cat,log_counter)
 
         readings = get_readings(car, carshape, sensors, sensor_length, stones, stones_shape, cats, cats_shape)
         ### choose action
-        if np.random.random() < epsilon or log_counter < OBSERVE:
+        if np.random.random() < epsilon or log_counter.step_count < OBSERVE:
             action = np.random.randint(0, 3)
         else:
             qval = model.predict(state,batch_size = 1)
@@ -475,7 +486,8 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
             X_train, y_train = process_minibatch(minibatch, model)
 
             history = LossHistory()
-            model.fit(X_train, y_train, params['batchSize'],nb_epoch = 1, verbose = 0, callbacks = [history])
+            print('fit model at step: ',log_counter.step_count )
+            model.model.fit(X_train, y_train, params['batchSize'],nb_epoch = 1, verbose = 0, callbacks = [history])
 
             loss_log.append(history.losses)
 
@@ -506,6 +518,8 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
 
         if (0 in readings):
             reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model)
+        if (log_counter.step_count == TRAIN_FRAMES - 1):
+            model.save_model()
 
         # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
         sensors_rectify(space,car,carshape,sensors,[np.pi/4,0,-np.pi/4],1)
