@@ -35,10 +35,10 @@ QUIT = 12
 MOVE = 2
 RESET = 5
 IS_CRASHED = False
-OBSERVE = 100
+OBSERVE = 200
 NUM_INPUT = 3
 GAMMA = 0.9
-TRAIN_FRAMES = 150
+TRAIN_FRAMES = 20000
 
 class LossHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -171,45 +171,45 @@ def create_cats(space, cat_configs):
 #     return body, shape
 
 ### original create_arm
-def create_arm(space, car, carshape, add_rate, rotation,sensor_num, deriviate_rate, color):
-    car_position = car.position
-    car_radius = carshape.radius
-    car_angle = car.angle
-    arm = []
-    arm_length = 0
-    for i in range(sensor_num):
-        x = ((car_position[0] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
-        y = ((car_position[1] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
-        new_x = x * np.cos(rotation) - y * np.sin(rotation) + car_position[0]
-        new_y = x * np.sin(rotation) + y * np.cos(rotation) + car_position[1]
-        point, _ = add_point(space, new_x, new_y, color)
-        arm.append(point)
-        arm_length = calculate_distance([new_x, new_y], car_position)
-    return arm, arm_length
+# def create_arm(space, car, carshape, add_rate, rotation,sensor_num, deriviate_rate, color):
+#     car_position = car.position
+#     car_radius = carshape.radius
+#     car_angle = car.angle
+#     arm = []
+#     arm_length = 0
+#     for i in range(sensor_num):
+#         x = ((car_position[0] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
+#         y = ((car_position[1] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
+#         new_x = x * np.cos(rotation) - y * np.sin(rotation) + car_position[0]
+#         new_y = x * np.sin(rotation) + y * np.cos(rotation) + car_position[1]
+#         point, _ = add_point(space, new_x, new_y, color)
+#         arm.append(point)
+#         arm_length = calculate_distance([new_x, new_y], car_position)
+#     return arm, arm_length
 
-def create_sensors(space, car, carshape, config, shape='trio'):
-    car_position = car.position
-    car_radius = carshape.radius
-    car_angle = car.angle
-
-    sensors = []
-
-    middle_sensor_length = -1
-
-    if shape == 'trio':
-        rotation = [np.pi/4, 0, -np.pi/4]
-        middle_sensor, middle_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[1],
-                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
-        left_sensor, left_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[0],
-                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = 'pink')
-        right_sensor, right_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[2],
-                                   sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
-
-    sensors.append(left_sensor)
-    sensors.append(middle_sensor)
-    sensors.append(right_sensor)
-
-    return sensors, middle_sensor_length
+# def create_sensors(space, car, carshape, config, shape='trio'):
+#     car_position = car.position
+#     car_radius = carshape.radius
+#     car_angle = car.angle
+#
+#     sensors = []
+#
+#     middle_sensor_length = -1
+#
+#     if shape == 'trio':
+#         rotation = [np.pi/4, 0, -np.pi/4]
+#         middle_sensor, middle_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[1],
+#                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
+#         left_sensor, left_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[0],
+#                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = 'pink')
+#         right_sensor, right_sensor_length = create_arm(space,car,carshape,add_rate=config['add_rate'], rotation = rotation[2],
+#                                    sensor_num=config['sensor_num'], deriviate_rate=config['deriviate_rate'], color = config['color'])
+#
+#     sensors.append(left_sensor)
+#     sensors.append(middle_sensor)
+#     sensors.append(right_sensor)
+#
+#     return sensors, middle_sensor_length
 
 def sensors_rectify(space, car, carshape, sensors, rotation,add_rate):
     car_position = car.position
