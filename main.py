@@ -29,7 +29,7 @@ from models.model import Model
 from counter.experience_pool import Experience,Experience_Pool
 from elements.cars import Car, Sensors
 
-SCREEN_HEIGHT =600
+SCREEN_HEIGHT =1000
 SCREEN_WIDTH = 600
 BORDER = 50
 QUIT = 12
@@ -39,7 +39,7 @@ IS_CRASHED = False
 OBSERVE = 200
 NUM_INPUT = 3
 GAMMA = 0.9
-TRAIN_FRAMES = 200000
+TRAIN_FRAMES = 2000
 
 class LossHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -317,7 +317,7 @@ def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, c
             up_margin = 600 - point.position[1]
             down_margin = point.position[1]
             border_margin = np.array([left_margin, right_margin, up_margin, down_margin])
-            print(border_margin)
+            # print(border_margin)
             min_margin = np.min(border_margin)
             if stone_distance > min_margin:
                 stone_distance = min_margin

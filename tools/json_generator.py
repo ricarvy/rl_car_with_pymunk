@@ -6,8 +6,6 @@
 
 import json
 
-SCREEN_HEIGHT = 600
-SCREEN_WIDTH = 600
 BORDER = 200
 
 dict = {
@@ -21,7 +19,6 @@ dict = {
                 'rotation' : .2,
              }
         ],
-
     'walls':
         [
             {
@@ -41,9 +38,15 @@ dict = {
     'stones':
         [
             {
-                'initialize_position': [300, 300],
+                'initialize_position': [300, 400],
                 'mass': 10,
-                'radius': 100,
+                'radius': 90,
+                'color': 'black'
+            },
+            {
+                'initialize_position': [750, 250],
+                'mass': 10,
+                'radius': 60,
                 'color': 'black'
             }
         ],
