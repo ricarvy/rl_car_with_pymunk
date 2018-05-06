@@ -10,7 +10,7 @@ from pygame.locals import *
 import pymunk #1
 import numpy as np
 from pymunk.pygame_util import DrawOptions
-
+import datetime
 
 QUIT = 12
 MOVE = 2
@@ -27,45 +27,49 @@ def add_ball(space):
     return body, shape
 
 def main():
-    pygame.init()
-    screen = pygame.display.set_mode((600, 600))
-    pygame.display.set_caption("Joints. Just wait and the L will tip over")
-    clock = pygame.time.Clock()
-
-    space = pymunk.Space()
-    space.gravity = (0.0, 0.0)
-
-    balls = []
-    draw_options = DrawOptions(screen)
-
-    # ball, ball_shape = add_ball(space)
-
-
-    ticks_to_next_ball = 10
-    while True:
-        for event in pygame.event.get():
-            # print(event.type)
-            if event.type == QUIT:
-                sys.exit(0)
-            elif event.type == MOVE:
-                pygame.draw.circle(screen, (255, 0, 0), (300, 300), 30)
-        #         ball.angle += (np.pi/4)
-        # ball.position = ball.position[0] + 2*np.cos(ball.angle) , ball.position[1] + 2*np.sin(ball.angle)
-
-
-        # ticks_to_next_ball -= 1
-        # if ticks_to_next_ball <= 0:
-        #     ticks_to_next_ball = 25
-        #     ball_shape = add_ball(space)
-        #     balls.append(ball_shape)
-
-        space.step(1/50.0)
-
-        screen.fill((255,255,255))
-        space.debug_draw(draw_options)
-
-        pygame.display.flip()
-        clock.tick(50)
+    # pygame.init()
+    # screen = pygame.display.set_mode((600, 600))
+    # pygame.display.set_caption("Joints. Just wait and the L will tip over")
+    # clock = pygame.time.Clock()
+    #
+    # space = pymunk.Space()
+    # space.gravity = (0.0, 0.0)
+    #
+    # balls = []
+    # draw_options = DrawOptions(screen)
+    #
+    # # ball, ball_shape = add_ball(space)
+    #
+    #
+    # ticks_to_next_ball = 10
+    # while True:
+    #     for event in pygame.event.get():
+    #         # print(event.type)
+    #         if event.type == QUIT:
+    #             sys.exit(0)
+    #         elif event.type == MOVE:
+    #             pygame.draw.circle(screen, (255, 0, 0), (300, 300), 30)
+    #     #         ball.angle += (np.pi/4)
+    #     # ball.position = ball.position[0] + 2*np.cos(ball.angle) , ball.position[1] + 2*np.sin(ball.angle)
+    #
+    #
+    #     # ticks_to_next_ball -= 1
+    #     # if ticks_to_next_ball <= 0:
+    #     #     ticks_to_next_ball = 25
+    #     #     ball_shape = add_ball(space)
+    #     #     balls.append(ball_shape)
+    #
+    #     space.step(1/50.0)
+    #
+    #     screen.fill((255,255,255))
+    #     space.debug_draw(draw_options)
+    #
+    #     pygame.display.flip()
+    #     clock.tick(50)
+    current = datetime.datetime.now()
+    time_str = str(current.day) + '-' + str(current.month) + '-' + str(current.year) + '-' + str(current.hour) + ':' + str(current.minute) + ':' + str(current.second)
+    filepath = 'original_model_%s.h5' %time_str
+    print(filepath)
 
 if __name__ == '__main__':
     main()

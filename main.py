@@ -39,7 +39,7 @@ IS_CRASHED = False
 OBSERVE = 200
 NUM_INPUT = 3
 GAMMA = 0.9
-TRAIN_FRAMES = 20000
+TRAIN_FRAMES = 2000
 
 class LossHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -636,7 +636,8 @@ def main():
     # model.get_summary()
 
     if options.mode == 'example':
-        model = Model(NUM_INPUT, params['nn'])
+        # model = Model(NUM_INPUT, params['nn'])
+        model = load_model('models/oringin_model_%s.h5')
         create_an_expmple(map_random, config, log_counter, ep, model)
 
     elif options.mode == 'test':

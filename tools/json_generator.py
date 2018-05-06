@@ -41,9 +41,9 @@ dict = {
     'stones':
         [
             {
-                'initialize_position': [500, 100],
+                'initialize_position': [300, 300],
                 'mass': 10,
-                'radius': 50,
+                'radius': 100,
                 'color': 'black'
             }
         ],
@@ -69,6 +69,6 @@ dict = {
         ]
 }
 
-with open('../config.json', 'w') as file:
+with open('config.json', 'w') as file:
     json.dump(dict, file)
     print('Done!')
