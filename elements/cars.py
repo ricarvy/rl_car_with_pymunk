@@ -17,6 +17,7 @@ class Car:
         self.shape = self.car[1]
         self.position = self.body.position
         self.angle= self.body.angle
+        self.rotation_rate = .2
 
     def create_car(self, space, car_configs):
         for car_config in car_configs:
@@ -30,6 +31,28 @@ class Car:
             space.add(body, shape)  # 5
         return [body, shape]
 
+    def car_angle_changed(self):
+        self.body.angle += (self.rotation_rate)
+        for sensor in sensors:
+            for arm in sensor:
+                # new_x = ((car.position[0] - sensor.position[0]) * np.cos(np.pi / 4) + (
+                # car.position[1] - sensor.position[1]) * np.sin(np.pi / 4)) + sensor.position[0]
+                # new_y = 600-(((sensor.position[1] - car.position[1]) * np.sin(np.pi / 4) - (
+                # sensor.position[0] - car.position[0]) * np.cos(np.pi / 4)) + sensor.position[1])
+
+                # new_x = ((sensor.position[0] - car.position[0]) * np.cos(np.pi / 4) - (
+                # sensor.position[1] - car.position[1]) * np.sin(np.pi / 4)) + car.position[0]
+                # new_y = 600-(((car.position[1] - sensor.position[1]) * np.sin(np.pi / 4) + (
+                # car.position[0] - sensor.position[0]) * np.cos(np.pi / 4)) + car.position[1])
+
+                new_x = ((arm.position[0] - car.position[0]) * np.cos(changed_angle) - (
+                    arm.position[1] - car.position[1]) * np.sin(
+                    changed_angle)) + car.position[0]
+                new_y = ((arm.position[0] - car.position[0]) * np.sin(changed_angle) + (
+                    arm.position[1] - car.position[1]) * np.cos(
+                    changed_angle)) + car.position[1]
+                arm.position = new_x, new_y
+
     def get_car(self):
         return self.body, self.shape
 
@@ -40,7 +63,6 @@ class Sensors:
         self.carshape = carshape
         self.config = config
         self.shape = shape
-
         self.sensors = self.create_sensors(space)
 
     def add_point(self, space, x, y, color):

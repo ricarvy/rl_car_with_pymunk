@@ -10,6 +10,7 @@ from keras.optimizers import RMSprop
 from keras.layers.recurrent import LSTM
 from keras.callbacks import Callback
 from keras.utils import plot_model
+from keras.models import load_model
 import numpy as np
 
 import datetime
@@ -61,6 +62,10 @@ class Model:
         # time_str = ''+current.day + '-' + current.month + '-' + current.year + '-' + current.hour + '-' + current.minute + '-' + current.second
         self.model.save('models/oringin_model_%s.h5')
 
+def load():
+    model = load_model('oringin_model_%s.h5')
+    return model
+
 
 # NUM_INPUT = 3
 # nn_param = [128, 128]
@@ -75,3 +80,8 @@ class Model:
 # result = model.model.predict(X)
 # print(result)
 # model.plot_model('model.png')
+
+model = load()
+test_data = np.array([4,5,5]).reshape((1,3))
+result = model.predict(test_data)
+print(result)
