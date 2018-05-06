@@ -16,12 +16,13 @@ from pymunk.pygame_util import DrawOptions
 from pygame.colordict import THECOLORS
 from pymunk.vec2d import Vec2d
 from keras.callbacks import Callback
+from keras.models import load_model
 
 from argparse import ArgumentParser
 
 import json
 from tools.json_loader import config_load
-from tools.distance_calculator import calculate_distance, calculate_angel
+from tools.distance_calculator import calculate_distance, calculate_angel,get_distance_level
 from counter.log_counter import LogCounter
 from models.model import Model
 
@@ -263,20 +264,12 @@ def car_move(car, sensors, speed):
         for point in sensor:
             point.position = point.position[0] + speed * np.cos(car.angle), point.position[1] + speed * np.sin(car.angle)
 
-def reset_game(map_random, space, car, carshape, sensors,log_counter,ep,model,arm_shape = 'trio'):
-    create_an_expmple(map_random, config_load(), log_counter, ep, model)
+def reset_game(map_random, space, car, carshape, sensors,log_counter,ep,model,mode,arm_shape = 'trio'):
+    if mode == 'train':
+        create_an_expmple(map_random, config_load(), log_counter, ep, model)
+    elif mode == 'test':
+        test_an_example(map_random,config_load(),log_counter,ep, model)
     sys.exit(0)
-
-def get_distance_level(distances, sensor_length):
-    if distances[0] <= 0:
-        return 0
-    if distances[len(distances)-1] >0:
-        return len(distances)
-    for i in range(len(distances)):
-        if i == 0:
-            continue
-        if distances[i-1]>0 and distances[i]<0:
-            return i+1
 
 def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, cats, cats_shape):
     car_position = car.position
@@ -300,7 +293,7 @@ def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, c
                     stone_distance = distance
 
             distances.append(stone_distance)
-            distance_level = get_distance_level(distances, sensor_length)
+            distance_level = get_distance_level(distances)
         reading.append(distance_level)
 
     return reading
@@ -455,7 +448,7 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
                 car_angel_changed(car,rotation_rate,sensors)
 
             elif event.type == RESET:
-                reset_game(map_random, space, car, carshape, sensors, log_counter, ep, model)
+                reset_game(map_random, space, car, carshape, sensors, log_counter, ep, model, 'train')
         car_move(car, sensors, 3)
         for cat in cats:
             cats_move(cat,log_counter)
@@ -466,7 +459,7 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
             action = np.random.randint(0, 3)
         else:
             qval = model.predict(state,batch_size = 1)
-            action = (np.argmax(qval))
+            action = np.argmax(qval)
         if action == 0:
             car_angel_changed(car, rotation_rate, sensors)
         elif action ==1:
@@ -517,13 +510,105 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
             start_time = timeit.default_timer()
 
         if (0 in readings):
-            reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model)
+            reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model, 'train')
         if (log_counter.step_count == TRAIN_FRAMES - 1):
             model.save_model()
 
         # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
         sensors_rectify(space,car,carshape,sensors,[np.pi/4,0,-np.pi/4],1)
 
+
+        space.step(1 / 50.0)
+
+        screen.fill(THECOLORS['whitesmoke'])
+        space.debug_draw(draw_options)
+
+        pygame.display.flip()
+        clock.tick(50)
+
+def test_an_example(map_random, config, log_counter,ep, model):
+    epsilon = 1
+    loss_log = []
+    car_distance = 0
+    max_car_distance = 0
+    data_collect = []
+    rotation_rate = config['cars'][0]['rotation']
+    nn_param = [128, 128]
+    params = {
+        "batchSize": 64,
+        "buffer": 50000,
+        "nn": nn_param
+    }
+
+    pygame.init()
+    screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
+    pygame.draw.circle(screen, (255, 255, 255), (300, 300), 2)
+    pygame.display.set_caption('Reinforcement Learning Game')
+    clock = pygame.time.Clock()
+
+    space = pymunk.Space()
+    space.gravity = (0.0, 0.0)
+    draw_options = DrawOptions(screen)
+
+    ### create the world map
+    ### create the car
+    car_gen = Car(space, config['cars'])
+    # car, carshape = create_car(space, config['cars'])
+    car, carshape = car_gen.get_car()
+    sensors, sensor_length = Sensors(space, car, carshape, config['sensors'][0], 'trio').get_sensors()
+    # sensors, sensor_length = create_sensors(space,car,carshape,config['sensors'][0], 'trio')
+
+    if map_random == False:
+        ### create walls
+        # walls = create_walls(space, config['walls'])
+        ### create stones
+        stones, stones_shape = create_stones(space, config['stones'])
+        ### create cats
+        cats, cats_shape = create_cats(space, config['cats'])
+    else:
+        stones, stones_shape = create_random_stones(space, 3)
+        cats, cats_shape = create_random_cats(space, 2)
+
+    ### initialize the state
+    readings = get_readings(car, carshape, sensors, sensor_length, stones, stones_shape, cats, cats_shape)
+    start_time = timeit.default_timer()
+    _, state = get_reward_and_new_state(2, readings, car, carshape, sensors, sensor_length, stones, stones_shape, cats,
+                                        cats_shape)
+
+    while log_counter.step_count < TRAIN_FRAMES:
+        log_counter.step_count += 1
+        car_distance += 1
+
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                sys.exit(0)
+            elif event.type == MOVE:
+                car_angel_changed(car, rotation_rate, sensors)
+
+            elif event.type == RESET:
+                reset_game(map_random, space, car, carshape, sensors, log_counter, ep, model, 'test')
+        car_move(car, sensors, 3)
+        for cat in cats:
+            cats_move(cat, log_counter)
+
+        readings = get_readings(car, carshape, sensors, sensor_length, stones, stones_shape, cats, cats_shape)
+        print(readings)
+        if (0 in readings):
+            # reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model, 'test')
+            sys.exit(0)
+
+        ### test the model
+        old_state = np.array(readings).reshape((1,3))
+        new_state = model.predict(old_state)
+        action = np.argmax(new_state)
+        if action == 0:
+            car_angel_changed(car, np.pi/4, sensors)
+        elif action == 1:
+            car_angel_changed(car, -np.pi/4, sensors)
+
+
+        # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
+        sensors_rectify(space, car, carshape, sensors, [np.pi / 4, 0, -np.pi / 4], 1)
 
         space.step(1 / 50.0)
 
@@ -541,7 +626,6 @@ def main():
     parser = build_paser()
     options = parser.parse_args()
     map_random = options.map_random
-
     ### model builder
     nn_param = [128, 128]
     params = {
@@ -549,11 +633,15 @@ def main():
         "buffer": 50000,
         "nn": nn_param
     }
-    model = Model(NUM_INPUT, params['nn'])
-    model.get_summary()
+    # model.get_summary()
 
     if options.mode == 'example':
+        model = Model(NUM_INPUT, params['nn'])
         create_an_expmple(map_random, config, log_counter, ep, model)
+
+    elif options.mode == 'test':
+        model = load_model('models/oringin_model_%s.h5')
+        test_an_example(map_random, config, log_counter, ep, model)
 
 
 

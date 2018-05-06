@@ -18,3 +18,14 @@ def calculate_angel(x,y):
         return np.arccos(gap_x/slide)
     else:
         return -np.arccos(gap_x/slide)
+
+def get_distance_level(distances):
+    if distances[0] <= 0:
+        return 0
+    if distances[len(distances)-1] >0:
+        return len(distances)
+    for i in range(len(distances)):
+        if i == 0:
+            continue
+        if distances[i-1]>0 and distances[i]<0:
+            return i+1
