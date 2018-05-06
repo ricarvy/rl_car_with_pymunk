@@ -232,15 +232,17 @@ def create_cats(space, cat_configs):
 #
 #     return sensors, middle_sensor_length
 
-def sensors_rectify(space, car, carshape, sensors, rotation,add_rate):
+def sensors_rectify(space, car, carshape, sensors, rotation,config):
     car_position = car.position
     car_angle = car.angle
     car_radius = carshape.radius
+    add_rate = config['sensors'][0]['add_rate']
+    deriviate_rate = config['sensors'][0]['deriviate_rate']
 
     for k,sensor in enumerate(sensors):
         for i,point in enumerate(sensor):
-            x = ((car_position[0] + (0.5 + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
-            y = ((car_position[1] + (0.5 + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
+            x = ((car_position[0] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[0])
+            y = ((car_position[1] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[1])
             new_x = x * np.cos(rotation[k]) - y * np.sin(rotation[k]) + car_position[0]
             new_y = x * np.sin(rotation[k]) + y * np.cos(rotation[k]) + car_position[1]
             point.position = new_x,new_y
@@ -545,7 +547,7 @@ def create_an_expmple(map_random, config, log_counter,ep, model):
             model.save_model()
 
         # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
-        sensors_rectify(space,car,carshape,sensors,[np.pi/4,0,-np.pi/4],1)
+        sensors_rectify(space,car,carshape,sensors,[np.pi/4,0,-np.pi/4],config)
 
 
         space.step(1 / 50.0)
@@ -686,7 +688,7 @@ def main():
     # model.get_summary()
 
     if options.mode == 'example':
-        model = Model(NUM_INPUT, params['nn'])
+        model = Model(NUM_INPUT, params['nn'], TRAIN_FRAMES)
         # model = load_model('models/oringin_model_%s.h5')
         create_an_expmple(map_random, config, log_counter, ep, model)
 

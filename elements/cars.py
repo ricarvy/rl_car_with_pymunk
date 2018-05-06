@@ -61,10 +61,10 @@ class Sensors:
         arm_length = 0
         for i in range(sensor_num):
             x = (
-            (car_position[0] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.cos(car_angle)) - car_position[
+            (car_position[0] + (deriviate_rate + i * add_rate) * car_radius * np.cos(car_angle)) - car_position[
                 0])
             y = (
-            (car_position[1] + (deriviate_rate + (i + 1) * add_rate) * car_radius * np.sin(car_angle)) - car_position[
+            (car_position[1] + (deriviate_rate + i * add_rate) * car_radius * np.sin(car_angle)) - car_position[
                 1])
             new_x = x * np.cos(rotation) - y * np.sin(rotation) + car_position[0]
             new_y = x * np.sin(rotation) + y * np.cos(rotation) + car_position[1]

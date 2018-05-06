@@ -16,9 +16,10 @@ import numpy as np
 import datetime
 
 class Model:
-    def __init__(self, num_sensors, params, load=''):
+    def __init__(self, num_sensors, params,train_frame, load=''):
 
         self.model = self.build_model(num_sensors,params,load)
+        self.train_frame = train_frame
 
     def build_model(self,num_sensors, params, load=''):
         model = Sequential()
@@ -60,7 +61,7 @@ class Model:
     def save_model(self):
         current = datetime.datetime.now()
         time_str = str(current.day) + '.' + str(current.month) + '.' + str(current.year) + '.' + str(
-            current.hour) + '.' + str(current.minute) + '.' + str(current.second)
+            current.hour) + '.' + str(current.minute) + '.' + str(current.second)+'.'+ str(self.train_frame)
         filepath = 'models/original_model_%s.h5' % time_str
         self.model.save(filepath)
 

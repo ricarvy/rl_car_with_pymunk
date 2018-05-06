@@ -64,9 +64,9 @@ dict = {
     'sensors':
         [
             {
-                'sensor_num' : 5,
+                'sensor_num' : 7,
                 'deriviate_rate' : 0.5,
-                'add_rate' : 0.5,
+                'add_rate' : 1,
                 'color' : 'black'
             }
         ]
