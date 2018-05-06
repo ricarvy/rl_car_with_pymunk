@@ -8,7 +8,7 @@ import json
 
 SCREEN_HEIGHT = 600
 SCREEN_WIDTH = 600
-BORDER = 50
+BORDER = 200
 
 dict = {
     'cars':
@@ -53,7 +53,7 @@ dict = {
             {
                 'initialize_position' : [100, 500],
                 'mass' : 1,
-                'radius' : 10,
+                'radius' : 15,
                 'color' : 'orange'
             }
         ],
@@ -63,7 +63,7 @@ dict = {
             {
                 'sensor_num' : 5,
                 'deriviate_rate' : 0.5,
-                'add_rate' : 1,
+                'add_rate' : 0.5,
                 'color' : 'black'
             }
         ]

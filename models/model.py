@@ -59,10 +59,10 @@ class Model:
 
     def save_model(self):
         current = datetime.datetime.now()
-        time_str = str(current.day) + '-' + str(current.month) + '-' + str(current.year) + '-' + str(
-            current.hour) + ':' + str(current.minute) + ':' + str(current.second)
-        filepath = 'original_model_%s.h5' % time_str
-        self.model.save('models/oringin_model_%s.h5' % filepath)
+        time_str = str(current.day) + '.' + str(current.month) + '.' + str(current.year) + '.' + str(
+            current.hour) + '.' + str(current.minute) + '.' + str(current.second)
+        filepath = 'models/original_model_%s.h5' % time_str
+        self.model.save(filepath)
 
 def load():
     model = load_model('oringin_model_%s.h5')
@@ -77,6 +77,7 @@ def load():
 #     "nn": nn_param
 # }
 # model = Model(NUM_INPUT,params['nn'])
+# model.save_model()
 # X = np.array([5,5,5]).reshape((1,3))
 # # y = np.array(np.arange(0,15).reshape(5,3))
 # result = model.model.predict(X)

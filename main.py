@@ -39,7 +39,7 @@ IS_CRASHED = False
 OBSERVE = 200
 NUM_INPUT = 3
 GAMMA = 0.9
-TRAIN_FRAMES = 2000
+TRAIN_FRAMES = 200000
 
 class LossHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -83,6 +83,26 @@ def build_paser():
 #         shape.color = THECOLORS[car_config['color']]
 #         space.add(body, shape)  # 5
 #     return body, shape
+
+def action_cheater(reading, car, sensors):
+    min_index = np.argmin(reading)
+    if reading[0] == reading[1] and reading[1] == reading[2]:
+        rotation = np.random.randint(0,2)
+        if rotation == 0:
+            car_angel_changed(car, .1, sensors)
+        else:
+            car_angel_changed(car, -.1, sensors)
+        return True
+    if (0 in reading):
+        car_angel_changed(car, np.pi, sensors)
+        return False
+    if min_index == 0:
+        car_angel_changed(car, -.2, sensors)
+    elif min_index ==2:
+        car_angel_changed(car, .2, sensors)
+    else:
+        car_angel_changed(car, .1, sensors)
+
 
 def create_walls(space, wall_configs):
     for wall_config in wall_configs:
@@ -275,9 +295,9 @@ def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, c
     car_position = car.position
     car_angle = car.angle
     reading = []
-    if (car.position[0] < BORDER - 5 or car.position[0] > SCREEN_WIDTH - BORDER + 5) or (
-            car.position[1] < BORDER - 5 or car.position[1] > SCREEN_HEIGHT - BORDER + 5):
-        return [0,0,0]
+    # if (car.position[0] < BORDER - 5 or car.position[0] > SCREEN_WIDTH - BORDER + 5) or (
+    #         car.position[1] < BORDER - 5 or car.position[1] > SCREEN_HEIGHT - BORDER + 5):
+    #     return [0,0,0]
     for i,sensor in enumerate(sensors):
         distances=[]
         for p,point in enumerate(sensor):
@@ -291,6 +311,16 @@ def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, c
                 distance = calculate_distance(point.position, cat.position) - stones_shape[c].radius
                 if stone_distance > distance:
                     stone_distance = distance
+
+            left_margin = point.position[0]
+            right_margin = 600 - point.position[0]
+            up_margin = 600 - point.position[1]
+            down_margin = point.position[1]
+            border_margin = np.array([left_margin, right_margin, up_margin, down_margin])
+            print(border_margin)
+            min_margin = np.min(border_margin)
+            if stone_distance > min_margin:
+                stone_distance = min_margin
 
             distances.append(stone_distance)
             distance_level = get_distance_level(distances)
@@ -593,21 +623,41 @@ def test_an_example(map_random, config, log_counter,ep, model):
 
         readings = get_readings(car, carshape, sensors, sensor_length, stones, stones_shape, cats, cats_shape)
         print(readings)
-        if (0 in readings):
-            # reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model, 'test')
+
+        ### just a cheat
+        # min_index = np.argmin(readings)
+        # if readings[0] == readings[1] and readings[1] == readings[2] and readings[0] == readings[2]:
+        #     min_index = -1
+        # if (0 in readings):
+        #     car_angel_changed(car, np.pi, sensors)
+        #     return False
+        # if min_index == 0:
+        #     car_angel_changed(car, -.2, sensors)
+        # elif min_index == 2:
+        #     car_angel_changed(car, .2, sensors)
+        # else:
+        #     car_angel_changed(car, 0, sensors)
+        ### end cheat
+
+        ### just a cheater
+        result = action_cheater(readings, car, sensors)
+        if (0 in readings and result):
+        #     reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model, 'test')
             sys.exit(0)
 
-        ### test the model
-        old_state = np.array(readings).reshape((1,3))
-        new_state = model.predict(old_state)
-        action = np.argmax(new_state)
-        if action == 0:
-            car_angel_changed(car, np.pi/4, sensors)
-        elif action == 1:
-            car_angel_changed(car, -np.pi/4, sensors)
 
 
-        # is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
+        # ### test the model
+        # old_state = np.array(readings).reshape((1,3))
+        # new_state = model.predict(old_state)
+        # action = np.argmax(new_state)
+        # if action == 0:
+        #     car_angel_changed(car, np.pi/4, sensors)
+        # elif action == 1:
+        #     car_angel_changed(car, -np.pi/4, sensors)
+
+
+        ### is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
         sensors_rectify(space, car, carshape, sensors, [np.pi / 4, 0, -np.pi / 4], 1)
 
         space.step(1 / 50.0)
@@ -636,8 +686,8 @@ def main():
     # model.get_summary()
 
     if options.mode == 'example':
-        # model = Model(NUM_INPUT, params['nn'])
-        model = load_model('models/oringin_model_%s.h5')
+        model = Model(NUM_INPUT, params['nn'])
+        # model = load_model('models/oringin_model_%s.h5')
         create_an_expmple(map_random, config, log_counter, ep, model)
 
     elif options.mode == 'test':
