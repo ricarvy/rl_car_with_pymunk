@@ -660,7 +660,7 @@ def test_an_example(map_random, config, log_counter,ep, model):
 
 
         ### is_detected(space,car,carshape,stones,stones_shape,cats,cats_shape,100)
-        sensors_rectify(space, car, carshape, sensors, [np.pi / 4, 0, -np.pi / 4], 1)
+        sensors_rectify(space, car, carshape, sensors, [np.pi / 4, 0, -np.pi / 4], config)
 
         space.step(1 / 50.0)
 
