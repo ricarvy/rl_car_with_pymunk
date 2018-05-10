@@ -12,7 +12,7 @@ dict = {
     'cars':
         [
             {
-                'initialize_position' : [BORDER,BORDER],
+                'initialize_position' : [500,100],
                 'mass' : 10,
                 'radius' : 15,
                 'color' : 'yellowgreen',

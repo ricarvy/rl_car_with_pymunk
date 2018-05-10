@@ -36,10 +36,10 @@ QUIT = 12
 MOVE = 2
 RESET = 5
 IS_CRASHED = False
-OBSERVE = 200
+OBSERVE = 5000
 NUM_INPUT = 3
 GAMMA = 0.9
-TRAIN_FRAMES = 2000
+TRAIN_FRAMES = 50000
 
 class LossHistory(Callback):
     def on_train_begin(self, logs={}):
@@ -102,6 +102,7 @@ def action_cheater(reading, car, sensors):
         car_angel_changed(car, .2, sensors)
     else:
         car_angel_changed(car, .1, sensors)
+    return True
 
 
 def create_walls(space, wall_configs):
@@ -276,8 +277,8 @@ def cats_move(cats, log_counter):
     if (log_counter.step_count % 50 == 0):
         cats_changed_angle = np.random.randint(-1, 2) * (np.pi / 4)
         cats.angle += cats_changed_angle
-    if (cats.position[0] < BORDER or cats.position[0] > SCREEN_WIDTH - BORDER) or (
-            cats.position[1] < BORDER or cats.position[1] > SCREEN_HEIGHT - BORDER):
+    if (cats.position[0] < BORDER or cats.position[0] > SCREEN_HEIGHT - BORDER) or (
+            cats.position[1] < BORDER or cats.position[1] > SCREEN_WIDTH - BORDER):
         cats.angle += np.pi
 
 def car_move(car, sensors, speed):
@@ -315,8 +316,8 @@ def get_readings(car, car_shape, sensors, sensor_length, stones, stones_shape, c
                     stone_distance = distance
 
             left_margin = point.position[0]
-            right_margin = 600 - point.position[0]
-            up_margin = 600 - point.position[1]
+            right_margin = SCREEN_HEIGHT - point.position[0]
+            up_margin = SCREEN_WIDTH - point.position[1]
             down_margin = point.position[1]
             border_margin = np.array([left_margin, right_margin, up_margin, down_margin])
             # print(border_margin)
@@ -607,7 +608,7 @@ def test_an_example(map_random, config, log_counter,ep, model):
     _, state = get_reward_and_new_state(2, readings, car, carshape, sensors, sensor_length, stones, stones_shape, cats,
                                         cats_shape)
 
-    while log_counter.step_count < TRAIN_FRAMES:
+    while True:
         log_counter.step_count += 1
         car_distance += 1
 
@@ -624,7 +625,7 @@ def test_an_example(map_random, config, log_counter,ep, model):
             cats_move(cat, log_counter)
 
         readings = get_readings(car, carshape, sensors, sensor_length, stones, stones_shape, cats, cats_shape)
-        print(readings)
+        # print(readings)
 
         ### just a cheat
         # min_index = np.argmin(readings)
@@ -643,6 +644,7 @@ def test_an_example(map_random, config, log_counter,ep, model):
 
         ### just a cheater
         result = action_cheater(readings, car, sensors)
+        print(log_counter.step_count)
         if (0 in readings and result):
         #     reset_game(map_random,space,car,carshape,sensors,log_counter, ep, model, 'test')
             sys.exit(0)
@@ -693,7 +695,8 @@ def main():
         create_an_expmple(map_random, config, log_counter, ep, model)
 
     elif options.mode == 'test':
-        model = load_model('models/oringin_model_%s.h5')
+        model = load_model('models/original_model_10.5.2018.12.19.30.20000.h5')
+
         test_an_example(map_random, config, log_counter, ep, model)
 
 
