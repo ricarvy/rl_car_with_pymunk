@@ -6,3 +6,5 @@
 *.py___jb_tmp___
 *.xml___jb_old___
 *.xml___jb_tmp___
+
+plot/~$evaluation.xlsx
