@@ -1,6 +1,6 @@
 # rl_car_with_pymunk
 
-Authors : LI Jiawei
+Authors : LI Jiawei，SUN Yue
 
 ## Introductions
 Hello, this is the repo of Reinforcement learning with training a car to run,
